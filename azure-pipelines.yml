@@ -1,0 +1,41 @@
+jobs:
+- deployment:
+  displayName: Deploy to AKS
+  pool:
+    vmImage: ubuntu-latest
+  environment: contoso.aksnamespace
+  strategy:
+    runOnce:
+      deploy:
+        steps:
+        - checkout: self
+        - task: KubernetesManifest@0
+          displayName: Create secret
+          inputs: 
+            action: createSecret
+            namespace: aksnamespace
+            secretType: dockerRegistry
+            secretName: foo-acr-secret
+            dockerRegistryEndpoint: fooACR
+            
+        - task: KubernetesManifest@0
+          displayName: Create secret
+          inputs: 
+            action: createSecret
+            namespace: aksnamespace
+            secretType: dockerRegistry
+            secretName: bar-acr-secret
+            dockerRegistryEndpoint: barACR
+            
+        - task: KubernetesManifest@0
+          displayName: Deploy
+          inputs:
+            action: deploy
+            namespace: aksnamespace
+            manifests: manifests/deployment.yml|manifests/service.yml
+            containers: |
+              foo.azurecr.io/demo:$(tagVariable1)
+              bar.azurecr.io/demo:$(tagVariable2)
+            imagePullSecrets: |
+              foo-acr-secret
+              bar-acr-secret
